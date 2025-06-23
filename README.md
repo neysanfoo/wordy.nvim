@@ -12,10 +12,11 @@ return {
   config = function()
     require("wordy").setup({
       colors = {
-        typed   = { fg = "#cdd6f4" },
-        empty   = { bg = "#1e1e2e", fg = "#bac2de" },
-        correct = { bg = "#a6e3a1", fg = "#11111b" },
-        present = { bg = "#f9e2af", fg = "#11111b" },
+        border = { fg = "#565758" },
+        typed = { fg = "#ffffff" },
+        correct = { bg = "#538d4e", fg = "#ffffff" },
+        present = { bg = "#b59f3b", fg = "#ffffff" },
+        absent = { fg = "#777777" },
       },
     })
   end,
@@ -28,10 +29,11 @@ return {
   config = function()
     require("wordy").setup({
       colors = {
-        empty   = { bg = "#1e1e2e", fg = "#bac2de" },
-        typed   = { fg = "#cdd6f4" },
-        correct = { bg = "#a6e3a1", fg = "#11111b" },
-        present = { bg = "#f9e2af", fg = "#11111b" },
+        border = { fg = "#565758" },
+        typed = { fg = "#ffffff" },
+        correct = { bg = "#538d4e", fg = "#ffffff" },
+        present = { bg = "#b59f3b", fg = "#ffffff" },
+        absent = { fg = "#777777" },
       },
     })
   end,
@@ -45,3 +47,7 @@ Start a new game:
 ```
 :Wordy
 ```
+
+## Note
+
+It will probably look bad with most color schemes except gruvbox.

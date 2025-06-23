@@ -6,8 +6,6 @@ C.colors = {
 	correct = { bg = "#538d4e", fg = "#ffffff" },
 	present = { bg = "#b59f3b", fg = "#ffffff" },
 	absent = { fg = "#777777" },
-	unused = { fg = "#d7dadc" },
-	used = { fg = "#555555" },
 }
 
 function C.merge(user)
