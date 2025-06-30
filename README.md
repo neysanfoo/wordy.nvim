@@ -40,6 +40,32 @@ return {
 })
 ```
 
+
+[Vundle](https://github.com/VundleVim/Vundle.vim)
+Add to your `.vimrc` or `init.vim`:
+```vim
+" In your Vundle plugin list
+Plugin 'neysanfoo/wordy.nvim'
+
+" Run :PluginInstall, add this configuration to your .vimrc
+lua << EOF
+require("wordy").setup({
+  colors = {
+    border = { fg = "#565758" },
+    typed = { fg = "#ffffff" },
+    correct = { bg = "#538d4e", fg = "#ffffff" },
+    present = { bg = "#b59f3b", fg = "#ffffff" },
+    absent = { fg = "#777777" },
+  },
+})
+EOF
+```
+
+Again, run:
+```
+:PluginInstall
+```
+
 ## Commands
 
 Start a new game:
