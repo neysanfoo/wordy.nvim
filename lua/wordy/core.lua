@@ -750,6 +750,17 @@ local function setup_autocmds()
 		end,
 	})
 
+	-- Add this autocmd to handle colorscheme changes
+	vim.api.nvim_create_autocmd("ColorScheme", {
+		group = group,
+		callback = function()
+			if game_state.win and vim.api.nvim_win_is_valid(game_state.win) then
+				setup_highlight_groups()
+				update_display()
+			end
+		end,
+	})
+
 	vim.api.nvim_create_autocmd("BufWipeout", {
 		group = group,
 		buffer = game_state.buf,
