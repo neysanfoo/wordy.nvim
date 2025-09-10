@@ -1,6 +1,5 @@
 local cfg = require("wordy.config")
 local core = require("wordy.core")
-
 local M = {}
 
 function M.setup(opts)

@@ -1,21 +1,23 @@
-local M = {}
+local M                      = {}
+local api                    = vim.api
+local cfg                    = require("wordy.config")
+local wl                     = require("wordy.wordlist")
+local vutils                 = require("colors.utils")
+local vcolor                 = require("colors.color")
 
-local cfg = require("wordy.config")
-local wl = require("wordy.wordlist")
-
-local GRID_ROWS = 6
-local GRID_COLS = 5
-local BOX_WIDTH = 10
-local KEYBOARD_ROWS = { "QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM" }
-local KEYBOARD_INDENTS = { -1, 1, 4 }
+local GRID_ROWS              = 6
+local GRID_COLS              = 5
+local BOX_WIDTH              = 10
+local KEYBOARD_ROWS          = { "QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM" }
+local KEYBOARD_INDENTS       = { -1, 1, 4 }
 local DEFAULT_FLASH_DURATION = 1200
 
-local answers = wl.answers
-local allowed = wl.allowed
+local answers                = wl.answers
+local allowed                = wl.allowed
 
-local state_file = vim.fn.stdpath("state") .. "/wordy_state.json"
+local state_file             = vim.fn.stdpath("state") .. "/wordy_state.json"
 
-local game_state = {
+local game_state             = {
 	buf = nil,
 	win = nil,
 	mode = "normal",
@@ -32,9 +34,8 @@ local game_state = {
 	message_timer = nil,
 }
 
-local colors = vim.deepcopy(cfg.colors)
-local TARGET = ""
-local alpha_status = {}
+local TARGET                 = ""
+local alpha_status           = {}
 
 local function initialize_game_target()
 	math.randomseed(os.time())
@@ -48,18 +49,42 @@ local function is_valid_word(word)
 end
 
 local function setup_highlight_groups()
-	local highlight_groups = {
-		WordyBorder = colors.border,
-		WordyTitle = { fg = "#ffffff", bold = true },
-		WordyTyped = colors.typed,
-		WordyCorrect = colors.correct,
-		WordyPresent = colors.present,
-		WordyAbsent = colors.absent,
-		WordyError = { fg = "#ff4d4f", bold = true },
+	local norm     = vutils.get_hl("Normal")
+	local red      = vutils.get_hl("DiagnosticError").fg or "#ff4d4f"
+	local accent   = vutils.get_hl("Function").fg
+			or vutils.get_hl("ExYellow").fg
+			or norm.fg
+
+	local defaults = {
+		WordyBorder  = { fg = accent, bg = norm.bg },
+		WordyTitle   = { fg = accent, bold = true },
+		WordyTyped   = { fg = norm.fg, bg = norm.bg },
+		WordyCorrect = { fg = norm.fg, bg = "#3a7d35" },
+		WordyPresent = { fg = norm.fg, bg = "#b59f3b" },
+		WordyAbsent  = { fg = (norm.bg and vcolor.mix(norm.fg, norm.bg, 60)) or norm.fg },
+		WordyError   = { fg = red, bg = norm.bg, bold = true },
 	}
 
-	for group, opts in pairs(highlight_groups) do
-		vim.api.nvim_set_hl(0, group, opts)
+	local map      = {
+		border  = "WordyBorder",
+		title   = "WordyTitle",
+		typed   = "WordyTyped",
+		correct = "WordyCorrect",
+		present = "WordyPresent",
+		absent  = "WordyAbsent",
+		error   = "WordyError",
+	}
+
+	local user     = (cfg.colors or {})
+	for key, group in pairs(map) do
+		local o = user[key]
+		if o then
+			defaults[group] = vim.tbl_extend("force", defaults[group], o)
+		end
+	end
+
+	for group, opts in pairs(defaults) do
+		api.nvim_set_hl(0, group, opts)
 	end
 end
 
@@ -338,11 +363,11 @@ local function calculate_cursor_position()
 end
 
 local function set_cursor_position()
-	if not game_state.buf or not vim.api.nvim_buf_is_valid(game_state.buf) then
+	if not game_state.buf or not api.nvim_buf_is_valid(game_state.buf) then
 		return
 	end
 
-	if not game_state.win or not vim.api.nvim_win_is_valid(game_state.win) then
+	if not game_state.win or not api.nvim_win_is_valid(game_state.win) then
 		return
 	end
 
@@ -351,19 +376,19 @@ local function set_cursor_position()
 	end
 
 	local target_line, target_col = calculate_cursor_position()
-	pcall(vim.api.nvim_win_set_cursor, game_state.win, { target_line, target_col })
+	pcall(api.nvim_win_set_cursor, game_state.win, { target_line, target_col })
 end
 
 local function update_display()
-	if not game_state.buf or not vim.api.nvim_buf_is_valid(game_state.buf) then
+	if not game_state.buf or not api.nvim_buf_is_valid(game_state.buf) then
 		return
 	end
 
-	if not game_state.win or not vim.api.nvim_win_is_valid(game_state.win) then
+	if not game_state.win or not api.nvim_win_is_valid(game_state.win) then
 		return
 	end
 
-	local win_width = vim.api.nvim_win_get_width(game_state.win)
+	local win_width = api.nvim_win_get_width(game_state.win)
 	local content_width = 29
 	game_state.center_offset = math.max(0, math.floor((win_width - content_width) / 2))
 
@@ -394,21 +419,21 @@ local function update_display()
 		})
 	end
 
-	vim.api.nvim_buf_clear_namespace(game_state.buf, -1, 0, -1)
-	vim.api.nvim_set_option_value("modifiable", true, { buf = game_state.buf })
-	vim.api.nvim_buf_set_lines(game_state.buf, 0, -1, false, centered_lines)
-	vim.api.nvim_set_option_value("modifiable", false, { buf = game_state.buf })
+	api.nvim_buf_clear_namespace(game_state.buf, -1, 0, -1)
+	api.nvim_set_option_value("modifiable", true, { buf = game_state.buf })
+	api.nvim_buf_set_lines(game_state.buf, 0, -1, false, centered_lines)
+	api.nvim_set_option_value("modifiable", false, { buf = game_state.buf })
 
 	for i, line in ipairs(centered_lines) do
 		if line:match("WORDY") then
 			local start_col = line:find("WORDY") - 1
-			vim.api.nvim_buf_add_highlight(game_state.buf, -1, "WordyTitle", i - 1, start_col, start_col + 6)
+			api.nvim_buf_add_highlight(game_state.buf, -1, "WordyTitle", i - 1, start_col, start_col + 6)
 			break
 		end
 	end
 
 	for _, hl in ipairs(highlights) do
-		vim.api.nvim_buf_add_highlight(
+		api.nvim_buf_add_highlight(
 			game_state.buf,
 			-1,
 			hl.hl_group,
@@ -424,6 +449,32 @@ local function update_display()
 
 	save_game_state()
 end
+
+local function flatten_colors_bg()
+	local bg = vutils.get_hl("Normal").bg or "#000000"
+	for _, grp in ipairs({ "ExDarkBg", "ExBlack2Bg", "ExBlack3Bg" }) do
+		api.nvim_set_hl(0, grp, { bg = bg })
+	end
+end
+
+-- Single autocmd to handle colorscheme changes
+local aug = api.nvim_create_augroup("WordyPalette", { clear = true })
+
+api.nvim_create_autocmd("ColorScheme", {
+	group = aug,
+	callback = function()
+		flatten_colors_bg()
+		setup_highlight_groups()
+		if game_state.win and api.nvim_win_is_valid(game_state.win) then
+			api.nvim_set_option_value(
+				"winhighlight",
+				"Normal:ExDarkBg,FloatBorder:WordyBorder",
+				{ win = game_state.win }
+			)
+			update_display()
+		end
+	end,
+})
 
 ---@param msg string
 ---@param hl_group string
@@ -611,7 +662,7 @@ function enter_insert_mode()
 	update_display()
 
 	vim.schedule(function()
-		if game_state.win and vim.api.nvim_win_is_valid(game_state.win) then
+		if game_state.win and api.nvim_win_is_valid(game_state.win) then
 			vim.cmd("startinsert")
 		end
 	end)
@@ -622,7 +673,7 @@ function enter_normal_mode()
 	update_display()
 
 	vim.schedule(function()
-		if game_state.win and vim.api.nvim_win_is_valid(game_state.win) then
+		if game_state.win and api.nvim_win_is_valid(game_state.win) then
 			vim.cmd("stopinsert")
 		end
 	end)
@@ -651,8 +702,8 @@ end
 local function handle_normal_key(key)
 	if key == "q" or key == "<Esc>" then
 		save_game_state()
-		if game_state.win and vim.api.nvim_win_is_valid(game_state.win) then
-			vim.api.nvim_win_close(game_state.win, true)
+		if game_state.win and api.nvim_win_is_valid(game_state.win) then
+			api.nvim_win_close(game_state.win, true)
 		end
 	elseif key == "i" then
 		enter_insert_mode()
@@ -666,8 +717,8 @@ local function handle_key(key)
 	if game_state.finished then
 		if key == "q" or key == "<Esc>" then
 			save_game_state()
-			if game_state.win and vim.api.nvim_win_is_valid(game_state.win) then
-				vim.api.nvim_win_close(game_state.win, true)
+			if game_state.win and api.nvim_win_is_valid(game_state.win) then
+				api.nvim_win_close(game_state.win, true)
 			end
 		elseif key == "r" then
 			clear_saved_state()
@@ -708,7 +759,7 @@ end
 
 local function setup_key_mappings()
 	local function map_key(mode, key, action)
-		vim.api.nvim_buf_set_keymap(game_state.buf, mode, key, "", {
+		api.nvim_buf_set_keymap(game_state.buf, mode, key, "", {
 			callback = function()
 				handle_key(action or key)
 			end,
@@ -735,40 +786,29 @@ local function setup_key_mappings()
 end
 
 local function setup_autocmds()
-	if not game_state.buf or not vim.api.nvim_buf_is_valid(game_state.buf) then
+	if not game_state.buf or not api.nvim_buf_is_valid(game_state.buf) then
 		return
 	end
 
-	local group = vim.api.nvim_create_augroup("WordyResize", { clear = true })
+	local group = api.nvim_create_augroup("WordyResize", { clear = true })
 
-	vim.api.nvim_create_autocmd("VimResized", {
+	api.nvim_create_autocmd("VimResized", {
 		group = group,
 		callback = function()
-			if game_state.win and vim.api.nvim_win_is_valid(game_state.win) then
+			if game_state.win and api.nvim_win_is_valid(game_state.win) then
 				update_display()
 			end
 		end,
 	})
 
-	-- Add this autocmd to handle colorscheme changes
-	vim.api.nvim_create_autocmd("ColorScheme", {
-		group = group,
-		callback = function()
-			if game_state.win and vim.api.nvim_win_is_valid(game_state.win) then
-				setup_highlight_groups()
-				update_display()
-			end
-		end,
-	})
-
-	vim.api.nvim_create_autocmd("BufWipeout", {
+	api.nvim_create_autocmd("BufWipeout", {
 		group = group,
 		buffer = game_state.buf,
 		callback = function()
 			save_game_state()
 			game_state.buf = nil
 			game_state.win = nil
-			vim.api.nvim_del_augroup_by_id(group)
+			api.nvim_del_augroup_by_id(group)
 		end,
 	})
 end
@@ -786,8 +826,8 @@ local function initialize_game_state()
 end
 
 function M.new_game()
-	if game_state.win and vim.api.nvim_win_is_valid(game_state.win) then
-		vim.api.nvim_win_close(game_state.win, true)
+	if game_state.win and api.nvim_win_is_valid(game_state.win) then
+		api.nvim_win_close(game_state.win, true)
 	end
 
 	initialize_game_state()
@@ -806,10 +846,11 @@ function M.new_game()
 	end
 
 	setup_highlight_groups()
+	flatten_colors_bg()
 
-	game_state.buf = vim.api.nvim_create_buf(false, true)
+	game_state.buf = api.nvim_create_buf(false, true)
 	if not game_state.buf then
-		vim.api.nvim_echo({ { "Error: Could not create buffer", "ErrorMsg" } }, false, {})
+		api.nvim_echo({ { "Error: Could not create buffer", "ErrorMsg" } }, false, {})
 		return
 	end
 
@@ -821,7 +862,7 @@ function M.new_game()
 	}
 
 	for option, value in pairs(buffer_options) do
-		vim.api.nvim_set_option_value(option, value, { buf = game_state.buf })
+		api.nvim_set_option_value(option, value, { buf = game_state.buf })
 	end
 
 	local win_width, win_height = calculate_window_size()
@@ -836,11 +877,17 @@ function M.new_game()
 		zindex = 50,
 	}
 
-	game_state.win = vim.api.nvim_open_win(game_state.buf, true, window_config)
+	game_state.win = api.nvim_open_win(game_state.buf, true, window_config)
 	if not game_state.win then
-		vim.api.nvim_echo({ { "Error: Could not create window", "ErrorMsg" } }, false, {})
+		api.nvim_echo({ { "Error: Could not create window", "ErrorMsg" } }, false, {})
 		return
 	end
+
+	api.nvim_set_option_value(
+		"winhighlight",
+		"Normal:ExDarkBg,FloatBorder:WordyBorder",
+		{ win = game_state.win }
+	)
 
 	local window_options = {
 		cursorline = false,
@@ -859,7 +906,7 @@ function M.new_game()
 	}
 
 	for option, value in pairs(window_options) do
-		vim.api.nvim_set_option_value(option, value, { win = game_state.win })
+		api.nvim_set_option_value(option, value, { win = game_state.win })
 	end
 
 	setup_key_mappings()
@@ -870,9 +917,7 @@ end
 ---@param opts table|nil
 function M.setup(opts)
 	opts = opts or {}
-
-	local merged = cfg.merge(opts)
-	colors = merged.colors
+	cfg.merge(opts)
 end
 
 initialize_game_target()
